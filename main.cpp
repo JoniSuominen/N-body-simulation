@@ -1,86 +1,59 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
+#include <SFML/Graphics.hpp>
 #include <iostream>
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
-
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
-
+#include "PlanetSystem.h"
+using namespace std;
 int main()
 {
-	// glfw: initialize and configure
-	// ------------------------------
-	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	int width = 600;
+	int height = 600;
+	double diameter = 5.0E11;
+	sf::RenderWindow window(sf::VideoMode(width, height), "N-body simulation!");
+	sf::Clock planetTimer;
+	sf::Clock drawTimer;
+	sf::Time time;
+	int planetUpdateRate = 1000 / 60;
+	int drawrate = 1000 / 30;
 
-#ifdef __APPLE__
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
-#endif
+	vector<Planet> planets;
+	Planet sun(538771.2647179796, 311728.01914265234, 0.15944610708562912, 0.15099663888466472, 1.989E30);
+	Planet mercurius(-2.3423738558153862E10, -5.363391883276512E10, 43168.9924212314, -19555.612648233368, 3.302E23);
+	Planet venus(-1.2257733349672739E10, 1.0688994731967513E11, -34980.88986158969, -3903.1360711941647, 4.869E24);
+	Planet earth(7.649815710400691E10, 1.2825871174194992E11, -25608.972746907584, 15340.707015973465, 5.974E24);
+	Planet mars(1.9433739848583844E11, 1.1855926503806793E11, -12591.918312354934, 20580.315270396313, 6.419E23);
+	planets.push_back(sun);
+	planets.push_back(mercurius);
+	planets.push_back(venus);
+	planets.push_back(earth);
+	planets.push_back(mars);
+	PlanetSystem system(planets, 5.0E11);
 
-	// glfw window creation
-	// --------------------
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-	if (window == NULL)
+	while (window.isOpen())
 	{
-		std::cout << "Failed to create GLFW window" << std::endl;
-		glfwTerminate();
-		return -1;
-	}
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+		sf::Event event;
+		while (window.pollEvent(event))
+			time = planetTimer.getElapsedTime();
+		if (time.asMilliseconds() > planetUpdateRate) {
+			system.update(2000);
+			planetTimer.restart();
+		}
+		time = drawTimer.getElapsedTime();
+		if (time.asMilliseconds() > drawrate) {
+			window.clear();
+			for (int i = 0; i < planets.size(); i++) {
+				sf::CircleShape shape(10, 10);
+				shape.setFillColor(sf::Color::Green);
+				shape.setPosition(width / 2 + width * planets[i].getXPosition() /diameter , height / 2  + height * planets[i].getYPosition() / diameter);
+				window.draw(shape);
+			}
 
-	// glad: load all OpenGL function pointers
-	// ---------------------------------------
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		return -1;
-	}
-
-	// render loop
-	// -----------
-	while (!glfwWindowShouldClose(window))
-	{
-		// input
-		// -----
-		processInput(window);
-
-		// render
-		// ------
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-		// -------------------------------------------------------------------------------
-		glfwSwapBuffers(window);
-		glfwPollEvents();
+			window.display();
+		}
+		{
+			if (event.type == sf::Event::Closed)
+				window.close();
+		}
 	}
 
-	// glfw: terminate, clearing all previously allocated GLFW resources.
-	// ------------------------------------------------------------------
-	glfwTerminate();
 	return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-	// make sure the viewport matches the new window dimensions; note that width and 
-	// height will be significantly larger than specified on retina displays.
-	glViewport(0, 0, width, height);
-}
